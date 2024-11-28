@@ -1,10 +1,6 @@
 import argparse
 import rosbag2_py
-from Elan_utils.constant import (
-    TF_JSON_PATH,
-    CAM_JSON_PATH,
-    MSG_SUFFIX,
-)
+
 from data_utils.writers import (
     ROSBAG_WRITER,
     PCDWriter, 
@@ -26,7 +22,6 @@ def make_args():
     # Load data from yaml
     parser.add_argument('--yaml_fpth', type=str, default='', help="Load data from yaml settings.")
     return parser.parse_args()
-
 
 def make_writers_from_yaml(fpth:str):
     import yaml

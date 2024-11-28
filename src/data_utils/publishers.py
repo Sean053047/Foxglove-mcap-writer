@@ -263,38 +263,3 @@ class TFPublisher(Node):
         translation = extrinsic_matrix[:3,3]
         rotation = extrinsic_matrix[:3,:3]
         self.tf = translation. R.from_matrix(rotation).as_quat()
-
-if __name__ == "__main__":
-    from auto_vehicle.Elan_utils.utils import elan_path_resolve
-    main_dir = (
-        "/home/sean/Desktop/ROSBag_analyze/Elan_data/city/EVIL_2024-05-09-14-12-16"
-    )
-    msg_types = ['pcd', 'img', 'box2d']
-    category = {
-        "pcd": "VLS128",
-        "img": "image",
-        "box2d":"image_label",
-    }
-    data_dirs = dict()
-    stamp_fpths = dict()
-    for type in msg_types:
-        data_dirs[type], stamp_fpths[type] = elan_path_resolve(main_dir, category[type])    
-        
-    
-    # with open(stamp_fpths['pcd'], 'r' ) as file:
-    #     pcd_timestamps = np.array([float(line.strip()) for line in file.readlines()], dtype=np.float128)
-    # with open(stamp_fpths['img'], 'r' ) as file:
-    #     img_timestamps = np.array([float(line.strip()) for line in file.readlines()], dtype=np.float128)
-    
-    rclpy.init(args=None)
-    pcd_node = PCDPublisher(data_dir=data_dirs['pcd'], stamp_fpth=stamp_fpths['pcd'])
-    # img_node = IMGPublisher(data_dir=data_dirs['img'], stamp_fpth=stamp_fpths['img'])
-    # box2d_node = BOX2DPublisher(data_dir=data_dirs['box2d'], stamp_fpth=stamp_fpths['box2d'])
-    rclpy.spin_once(pcd_node)
-    # rclpy.spin_once(img_node)
-    # rclpy.spin_once(box2d_node)
-    pcd_node.destroy_node()
-    # img_node.destroy_node()
-    # box2d_node.destroy_node()
-    print("[END] End of publishing.")
-    rclpy.shutdown()
