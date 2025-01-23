@@ -1,0 +1,49 @@
+pcd:
+  - data_dir: 'dataset/lidar'
+    fstem2time: 'lidar_fstem2time.yaml'
+    suffix: '.pcd'
+    frame_id: 'base_link'
+    schema: 'foxglove_msgs/msg/PointCloud'
+    topic: '/pointcloud'
+        
+
+box3d:
+  - data_dir: 'dataset/label_box3d'
+    fstem2time: 'box3d_fstem2time.yaml'
+    suffix: '.yaml'
+    frame_id: 'base_link'
+    schema: 'foxglove_msgs/msg/SceneUpdate'
+    topic: '/gt'
+  
+  - data_dir: 'dataset/pred_box3d'
+    fstem2time: 'box3d_fstem2time.yaml'
+    suffix: '.yaml'
+    frame_id: 'base_link'
+    schema: 'foxglove_msgs/msg/SceneUpdate'
+    topic: '/pred'
+    
+
+camera:
+  - data_dir: 'dataset/camera'
+    fstem2time: 'cam_fstem2time.yaml'
+    suffix: '.png'
+    frame_id: 'camera'
+    schema: 'foxglove_msgs/msg/CompressedImage'
+    topic:  '/camera'
+  
+static_tf:
+  - fpth: 'dataset/tf/camera.json'
+    suffix: '.json'
+    row_major: False
+    schema: 'foxglove_msgs/msg/FrameTransforms'
+    parent_frame_id: 'base_link'
+    child_frame_id: 'camera'
+    topic: '/tf'
+
+
+calib:
+  - fpth: 'dataset/calib/camera.json'
+    suffix: '.json'
+    parent_frame_id: 'camera'
+    schema: 'foxglove_msgs/msg/CameraCalibration'
+    topic: '/camera_info'
