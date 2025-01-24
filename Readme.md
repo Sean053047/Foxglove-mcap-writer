@@ -58,7 +58,7 @@ Notice that for message type with `fname2time`. Those `fname2time` file must spe
 `✓`: Required. `-`: No needed. `△`: optional
 
 |Category| data_dir | fstem2time | fpth | suffix | frame_id | schema |　topic | parent_frame | child_frame | color_offset |
-|---| --- | --- | --- | --- | --- | -- | -- | --| -- | -- |
+|---| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-:|:-: | :-: |
 | **pcd**      |✓|△|-|✓|✓|✓|✓|-|-|-|
 | **box3d**    |✓|△|-|✓|✓|✓|✓|-|-|△|
 | **camera**   |✓|△|-|✓|✓|✓|✓|-|-|-|
