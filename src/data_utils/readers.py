@@ -4,7 +4,6 @@ import cv2
 import yaml
 import json
 import numpy as np
-import pandas as pd
 from pathlib import Path
 from pypcd4 import PointCloud
 from builtin_interfaces.msg import Time
@@ -120,7 +119,6 @@ class StaticTFReader:
             return tf
         else:
             return tf.T
-
         
     @classmethod
     def deserialize(cls, content:dict):

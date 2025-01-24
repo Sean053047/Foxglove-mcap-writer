@@ -133,7 +133,6 @@ class Box3DWriter(ROSBAGWRITER):
                 quat:list = box3d['rotation'] # rw, rx, ry, rz
                 
                 size = box3d['size']
-                
                 r,g,b = map(float,CLASS2COLOR[cls])
                 r = max(min(r + self.color_offset[0], 1.0), 0.0)
                 g = max(min(g + self.color_offset[1], 1.0), 0.0)

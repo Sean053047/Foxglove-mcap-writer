@@ -14,7 +14,8 @@ CLASS2COLOR = {
             'DontCare': (0.7843,0.7843,0.7843),
             'Motorcycle': (0.0, 1.0, 0.588),
             'ScooterRider': (0.0, 1.0, 0.588),
-            'Bus': (5.0, 0.3, 0.2)}
+            'Bus': (0.5, 0.3, 0.2),
+            'Cart': (0.5, 0.2, 0.6)}
 CLASS2COLOR.update( { k.lower():v for k,v in CLASS2COLOR.items()})
 
 def get_box_vertices( bbox, order='xy'):
