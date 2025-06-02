@@ -2,11 +2,12 @@ import argparse
 import rosbag2_py
 from tqdm import tqdm
 from collections import defaultdict
-
+import os.path as osp
 from data_utils.writers import (
     ROSBAGWRITER,
     PCDWriter, 
     StaticTFWriter,
+    TimePosesWriter,
     CameraWriter,
     CALIBWriter,
     Box2DWriter,
@@ -16,20 +17,22 @@ from data_utils.readers import (
     BaseReader,
     PCDReader,
     StaticTFReader,
+    TimePosesReader,
     CameraReader,
     CALIBReader,
     Box2DReader,
     Box3DReader   
 )
 
-def Initialize_from_yaml(fpth:str):
+def Initialize_from_yaml(data_root:str, setting_fpth:str):
     import yaml
-    with open(fpth, 'r') as file:
+    with open(setting_fpth, 'r') as file:
         contents =yaml.safe_load(file)
         
     class2writer = {
         'pcd': PCDWriter,
         'static_tf': StaticTFWriter,
+        'time_poses': TimePosesWriter,
         'camera': CameraWriter,
         'calib': CALIBWriter,
         'box2d': Box2DWriter,
@@ -38,6 +41,7 @@ def Initialize_from_yaml(fpth:str):
     class2reader = {
         'pcd': PCDReader,
         'static_tf': StaticTFReader,
+        'time_poses': TimePosesReader,
         'camera': CameraReader,
         'calib': CALIBReader,
         'box2d': Box2DReader,
@@ -45,16 +49,18 @@ def Initialize_from_yaml(fpth:str):
     }
     
     data_IO = list()
-    static_tf_IO = defaultdict(list)
+    tf_IO = list()
     
     for key, setting_list in contents.items():
         writer_cls = class2writer[key]
         reader_cls = class2reader[key]
         writer_cls : ROSBAGWRITER
         reader_cls : BaseReader    
-        if key in ('static_tf', 'calib'):
+        if key in ('static_tf', 'calib', 'time_poses'):
             for setting in setting_list:
-                static_tf_IO[setting['parent_frame_id']].append(
+                setting['fpth']= osp.join(data_root, setting['fpth'])
+                __frame_id = setting['parent_frame_id'] if 'parent_frame_id' in setting else setting['frame_id']
+                tf_IO.append(
                     (
                         reader_cls.deserialize(setting),
                         writer_cls.deserialize(setting)
@@ -62,18 +68,19 @@ def Initialize_from_yaml(fpth:str):
                 )
         else:
             for setting in setting_list:
+                setting['data_dir']= osp.join(data_root, setting['data_dir'])
                 data_IO.append(
                     (reader_cls.deserialize(setting), 
                     writer_cls.deserialize(setting))
                 )
-            
-    return data_IO, static_tf_IO
+    return data_IO, tf_IO
 
 def make_args():
     from datetime import datetime
     parser = argparse.ArgumentParser(prog="Write data to mcap.")
     # Load data from yaml
     parser.add_argument('--yaml', type=str, required=True, help="Load data from yaml settings.")
+    parser.add_argument('--data-root', type=str, default='./', )
     # Output name of mcap
     parser.add_argument(
         "--mcap",
@@ -85,7 +92,7 @@ def make_args():
 
 def main(args):
     # Read Elan data path
-    data_IO, static_tf_IO = Initialize_from_yaml(args.yaml)
+    data_IO, tf_IO = Initialize_from_yaml(args.data_root, args.yaml)
     mcap = rosbag2_py.SequentialWriter()
     mcap.open(
         rosbag2_py.StorageOptions(uri=args.mcap, storage_id="mcap"),
@@ -93,32 +100,31 @@ def main(args):
             input_serialization_format="cdr", output_serialization_format="cdr"
         ),
     )
-    for reader, writer in tqdm(data_IO, total=len(data_IO)):
+    # * Iterate over data IO
+    frame_time_record = defaultdict(list) # ? Will be used in the below section
+    for reader, writer in tqdm(data_IO, total=len(data_IO), desc="Data IO:"):
         writer: ROSBAGWRITER
         reader: BaseReader
-        mcap = writer.init_writer(mcap)
-        # Load if meet condition
-        if writer.frame_id in static_tf_IO:
-            stfs, stf_writers = list(), list()
-            for rw in static_tf_IO[writer.frame_id]:
-                stfs.append(rw[0].load_data())
-                stf_writers.append(rw[1])
-                mcap = rw[1].init_writer(mcap)
-        else:
-            stf_writers = None
-              
+        mcap = writer.init_writer(mcap)        
         for i, fpth in enumerate(reader.all_files):
             stamp = reader.get_Time(stamp=fpth.stem)
             writer.write(mcap, stamp, reader.load_data(fpth))    
+            frame_time_record[writer.frame_id].append(stamp)
+    
+    # * Iterate over tf IO
+    for reader, writer in tqdm(tf_IO, total=len(tf_IO), desc="TF IO:"):
+        # Write static tf
+        mcap = writer.init_writer(mcap)
+        if type(writer) is not TimePosesWriter:
+            tf = reader.load_data()
+            frame_id = writer.frame_id if hasattr(writer, 'frame_id') else \
+                    writer.parent_frame_id if hasattr(writer, 'parent_frame_id') else None        
+            for stamp in frame_time_record[frame_id]:
+                writer.write(mcap, stamp, tf)
+        else:
+            writer.write(mcap, reader.load_data())
             
-            # If static tf exist, write to mcap.
-            if stf_writers is not None:
-                for stf, ww in zip(stfs, stf_writers):
-                    ww.write(mcap, stamp, stf)    
         
-        # Remove from dictionary
-        if stf_writers is not None:
-            del static_tf_IO[writer.frame_id]
             
 if __name__ == "__main__":
     args = make_args()

@@ -26,6 +26,8 @@ from foxglove_msgs.msg import (
     SceneEntity,
     FrameTransforms,
     FrameTransform, 
+    PoseInFrame,
+    PosesInFrame
 )
 
 from .utils import ( 
@@ -96,7 +98,14 @@ class PCDWriter(ROSBAGWRITER):
             PackedElementField(name="x", offset=0, type=7),
             PackedElementField(name="y", offset=4, type=7),
             PackedElementField(name="z", offset=8, type=7),
-        ]
+        ]+  ([
+            PackedElementField(name="red", offset=12, type=7),
+            PackedElementField(name="green", offset=16, type=7),
+            PackedElementField(name="blue", offset=20, type=7),
+        ] if {'r', 'g', 'b'} <= set(fields) else []
+        ) + ([
+            PackedElementField(name="a", offset=24, type=7),
+        ] if 'a' in fields else [])
         msg.data = pc_data.tobytes()
         self.write2bag(mcap_writer, msg, stamp)
 
@@ -257,18 +266,16 @@ class Box2DWriter(ROSBAGWRITER):
 
 class CALIBWriter(ROSBAGWRITER):
     def __init__(self, 
-                 parent_frame_id = "/camera", 
+                 frame_id = "/camera", 
                  schema = "foxglove_msgs/msg/CameraCalibration", 
                  topic = "/camera_info",
                 ) -> None:
-        super().__init__(None, schema, topic)
-        del self.frame_id
-        self.parent_frame_id = parent_frame_id
+        super().__init__(frame_id, schema, topic)
         
     def write(self, writer, stamp, matrices):
         msg = CameraCalibration(
             timestamp = stamp,
-            frame_id = self.parent_frame_id,
+            frame_id = self.frame_id,
             height = int(matrices['image_height']),
             width = int(matrices['image_width']),
             k = matrices['intrinsic'],
@@ -313,10 +320,44 @@ class StaticTFWriter(ROSBAGWRITER):
     @classmethod
     def deserialize(cls, content: dict):
         return cls(
-            schema=content.get('schema', "foxglove_msgs/msg/FrameTransforms"),
+            schema=content.get('schema', "foxglove_msgs/msg/PosesIN"),
             topic=content.get('topic', "/tf"),
             parent_frame_id=content.get('parent_frame_id', None),
             child_frame_id=content.get('child_frame_id', None),
         )
+
+class TimePosesWriter(ROSBAGWRITER):
+    def __init__(self, 
+                 schema = 'foxglove_msgs/msg/PoseInFrame', 
+                 frame_id ='base_link',
+                 topic = '/tpf',
+                 ) -> None:
+        super().__init__(frame_id, schema, topic)
+        
+    def write(self, writer, tps):
+        for time_pose in tps:
+            msg = PoseInFrame()
+            print(tps)
+            stamp=None
+            exit()
+            msg.transforms.append(
+                FrameTransform(
+                    timestamp = stamp,
+                    parent_frame_id = self.parent_frame_id,
+                    child_frame_id = self.child_frame_id,
+                    translation= Vector3(x= translate[0], y=translate[1], z=translate[2]),
+                    rotation = Quaternion(x = quat[0], y =quat[1], z=quat[2], w=quat[3]), 
+                )
+            )
+            self.write2bag(writer, msg, stamp)
+            
+    @classmethod
+    def deserialize(cls, content: dict):
+        return cls(
+            schema=content.get('schema', "foxglove_msgs/msg/PoseInFrame"),
+            frame_id=content.get('frame_id', 'base_link'),
+            topic=content.get('topic', "/tpf"),
+        )
+
 
 

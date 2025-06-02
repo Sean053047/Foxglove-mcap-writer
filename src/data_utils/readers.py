@@ -89,8 +89,6 @@ class CameraReader(BaseReader):
 class Box2DReader(BaseReader):    
     def load_data(self, fpth:str):
         return from_txt(fpth)
-
-
 # Below haven't done yet
 class CALIBReader:
     def __init__(self, fpth:str, suffix:str) -> None:
@@ -114,7 +112,7 @@ class StaticTFReader:
         self.row_major = row_major
         
     def load_data(self):
-        tf = np.array(from_json(self.fpth)['extrinsic']).reshape((4,4))
+        tf = np.array(from_json(self.fpth), dtype=np.float64).reshape((4,4))
         if self.row_major:
             return tf
         else:
@@ -127,4 +125,17 @@ class StaticTFReader:
             suffix = content.get('suffix', '.json'),
             row_major = content.get('row_major')
         )
-        
+
+class TimePosesReader:
+    def __init__(self, fpth:str, suffix:str,) -> None:
+        self.fpth = fpth
+        self.suffix = suffix
+    def load_data(self):
+        return from_json(self.fpth)
+    
+    @classmethod
+    def deserialize(cls, content:dict):
+        return cls(
+            fpth = content['fpth'],
+            suffix = content.get('suffix', '.json')
+        )

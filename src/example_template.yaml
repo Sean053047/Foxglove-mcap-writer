@@ -40,10 +40,15 @@ static_tf:
     child_frame_id: 'camera'
     topic: '/tf'
 
+time_poses:
+  - fpth: 'scene-0044384af3d8494e913fb8b14915239e-3/tf/ego_poses.txt'
+    frame_id: 'base_link'
+    schema: 'foxglove_msgs/msg/PoseInFrame'
+    topic: '/ego_pose'
 
 calib:
   - fpth: 'dataset/calib/camera.json'
     suffix: '.json'
-    parent_frame_id: 'camera'
+    frame_id: 'camera'
     schema: 'foxglove_msgs/msg/CameraCalibration'
     topic: '/camera_info'
