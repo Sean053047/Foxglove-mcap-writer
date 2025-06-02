@@ -126,13 +126,26 @@ class StaticTFReader:
             row_major = content.get('row_major')
         )
 
-class TimePosesReader:
+class TimePosesReader(BaseReader):
     def __init__(self, fpth:str, suffix:str,) -> None:
         self.fpth = fpth
         self.suffix = suffix
     def load_data(self):
-        return from_json(self.fpth)
+        '''Pose: (w, x, y, z) for rotation, (x, y, z) for translation'''
+        items = from_json(self.fpth)
+        get_Time = lambda stamp: Time(sec=int(stamp[:-9]), nanosec=int(stamp[-9:]))
+        timestamps = list()
+        poses = list()
+        for item in items:
+            timestamps.append(get_Time(item['timestamp']))
+            pose = dict(
+                translation = item['translation'],
+                rotation= item['rotation']
+            )
+            poses.append(pose)
+        return timestamps, poses
     
+        
     @classmethod
     def deserialize(cls, content:dict):
         return cls(

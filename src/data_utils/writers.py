@@ -33,7 +33,7 @@ from foxglove_msgs.msg import (
 from .utils import ( 
     CLASS2COLOR,
 )
-
+'''x:forward, y:left, z:up'''
 class ROSBAGWRITER:
     def __init__(self, frame_id, schema, topic) -> None:
         self.frame_id = frame_id
@@ -87,7 +87,7 @@ class PCDWriter(ROSBAGWRITER):
         
                 )
         )
-        lls = {'x', 'y', 'z', 'r','g','b','a'}        
+        lls = ['x', 'y', 'z', 'r','g','b','a']
         fields = [ ll for ll in pc.fields if ll in lls]
         types = [pc.types[i] for i, ll in enumerate(pc.fields) if ll in lls]
         pc_data = pc.numpy(fields)
@@ -334,20 +334,18 @@ class TimePosesWriter(ROSBAGWRITER):
                  ) -> None:
         super().__init__(frame_id, schema, topic)
         
-    def write(self, writer, tps):
-        for time_pose in tps:
+    def write(self, writer, stamps, tps):
+        '''rotation: (w, x, y, z) for quaternion, translation: (x, y, z)'''
+        for stamp, time_pose in zip(stamps, tps):
             msg = PoseInFrame()
-            print(tps)
-            stamp=None
-            exit()
-            msg.transforms.append(
-                FrameTransform(
-                    timestamp = stamp,
-                    parent_frame_id = self.parent_frame_id,
-                    child_frame_id = self.child_frame_id,
-                    translation= Vector3(x= translate[0], y=translate[1], z=translate[2]),
-                    rotation = Quaternion(x = quat[0], y =quat[1], z=quat[2], w=quat[3]), 
-                )
+            msg.timestamp = stamp
+            msg.frame_id = self.frame_id
+            
+            translation = time_pose['translation']
+            quat = time_pose['rotation']
+            msg.pose = Pose(
+                position=Point(x=translation[0], y=translation[1], z=translation[2]),
+                orientation=Quaternion(w=float(quat[0]), x=float(quat[1]), y=float(quat[2]), z=float(quat[3]))
             )
             self.write2bag(writer, msg, stamp)
             

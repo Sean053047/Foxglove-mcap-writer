@@ -59,7 +59,6 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
         if key in ('static_tf', 'calib', 'time_poses'):
             for setting in setting_list:
                 setting['fpth']= osp.join(data_root, setting['fpth'])
-                __frame_id = setting['parent_frame_id'] if 'parent_frame_id' in setting else setting['frame_id']
                 tf_IO.append(
                     (
                         reader_cls.deserialize(setting),
@@ -105,7 +104,7 @@ def main(args):
     for reader, writer in tqdm(data_IO, total=len(data_IO), desc="Data IO:"):
         writer: ROSBAGWRITER
         reader: BaseReader
-        mcap = writer.init_writer(mcap)        
+        mcap = writer.init_writer(mcap)      
         for i, fpth in enumerate(reader.all_files):
             stamp = reader.get_Time(stamp=fpth.stem)
             writer.write(mcap, stamp, reader.load_data(fpth))    
@@ -122,7 +121,8 @@ def main(args):
             for stamp in frame_time_record[frame_id]:
                 writer.write(mcap, stamp, tf)
         else:
-            writer.write(mcap, reader.load_data())
+            stamps, tps = reader.load_data()
+            writer.write(mcap, stamps, tps)
             
         
             
