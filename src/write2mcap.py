@@ -100,7 +100,7 @@ def main(args):
         ),
     )
     # * Iterate over data IO
-    frame_time_record = defaultdict(list) # ? Will be used in the below section
+    frame_time_record = list() # ? Will be used in the below section
     for reader, writer in tqdm(data_IO, total=len(data_IO), desc="Data IO:"):
         writer: ROSBAGWRITER
         reader: BaseReader
@@ -108,24 +108,18 @@ def main(args):
         for i, fpth in enumerate(reader.all_files):
             stamp = reader.get_Time(stamp=fpth.stem)
             writer.write(mcap, stamp, reader.load_data(fpth))    
-            frame_time_record[writer.frame_id].append(stamp)
-    
+            frame_time_record.append(stamp)
     # * Iterate over tf IO
     for reader, writer in tqdm(tf_IO, total=len(tf_IO), desc="TF IO:"):
         # Write static tf
         mcap = writer.init_writer(mcap)
         if type(writer) is not TimePosesWriter:
             tf = reader.load_data()
-            frame_id = writer.frame_id if hasattr(writer, 'frame_id') else \
-                    writer.parent_frame_id if hasattr(writer, 'parent_frame_id') else None        
-            for stamp in frame_time_record[frame_id]:
+            for stamp in frame_time_record:
                 writer.write(mcap, stamp, tf)
         else:
             stamps, tps = reader.load_data()
             writer.write(mcap, stamps, tps)
-            
-        
-            
 if __name__ == "__main__":
     args = make_args()
     main(args)

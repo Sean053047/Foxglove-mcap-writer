@@ -104,7 +104,7 @@ class PCDWriter(ROSBAGWRITER):
             PackedElementField(name="blue", offset=20, type=7),
         ] if {'r', 'g', 'b'} <= set(fields) else []
         ) + ([
-            PackedElementField(name="a", offset=24, type=7),
+            PackedElementField(name="alpha", offset=24, type=7),
         ] if 'a' in fields else [])
         msg.data = pc_data.tobytes()
         self.write2bag(mcap_writer, msg, stamp)
