@@ -84,7 +84,6 @@ class PCDWriter(ROSBAGWRITER):
                 frame_id = self.frame_id,
                 pose=Pose(  position=Point(x=0.0, y=0.0, z=0.0),
                             orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=0.0)
-        
                 )
         )
         lls = ['x', 'y', 'z', 'r','g','b','a']
@@ -291,7 +290,7 @@ class CALIBWriter(ROSBAGWRITER):
             topic=content.get('topic', "/camera_info"),
         )
 
-class StaticTFWriter(ROSBAGWRITER):
+class TFStaticWriter(ROSBAGWRITER):
     def __init__(self, 
                  schema = 'foxglove_msgs/msg/FrameTransforms', 
                  parent_frame_id =None,

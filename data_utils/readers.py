@@ -58,35 +58,49 @@ class BaseReader:
                    fstem2time = content.get('fstem2time', None))
     
 # Todo: Need to check pcd format. Add use for feather files
-class PCDReader(BaseReader):
-    def __init__(self, data_dir:str,  suffix: str, fstem2time:str=None, option=None) -> None:
+class OCCReader(BaseReader):
+    def __init__(self, data_dir:str, suffix: str, occ_info_fpth:str, fstem2time:str=None,  ) -> None:
         super().__init__(data_dir, suffix, fstem2time)
-        self.option = option
+        self.occ_info_arr = np.load(occ_info_fpth, allow_pickle=True)
+    
+    def load_data(self, fpth:str):
+        occ = np .load(fpth, allow_pickle=True)
+        print(occ.shape)
+        exit()
+        
+        fields = ['x', 'y', 'z', 'intensity', 'semantic']
+        types = [np.float32, np.float32, np.float32, np.float32, np.int32]
+        pc_arr = np.load(fpth, allow_pickle=True).T
+        if pc_arr.shape[1] < 5:
+            fields.pop(-1)
+            types.pop(-1)
+        pc = PointCloud.from_points(pc_arr, fields=fields, types=types)
+        return pc
+    @classmethod
+    def deserialize(cls, content:dict):
+        return cls(
+            data_dir = content['data_dir'],
+            suffix = content['suffix'],
+            occ_info_fpth = content['occ_info_fpth'],
+            fstem2time = content.get('fstem2time', None)
+        )
+class PCDReader(BaseReader):
     def load_data(self, fpth:str):
         if self.suffix == '.pcd':
             pc = PointCloud.from_path(fpth)
             return pc
         elif self.suffix == '.npy':
             # ? This is suitable for RadarOcc .npy file.            
-            if self.option == 'radarocc':
-                raise NotImplementedError("RadarOcc .npy file is not supported yet.")
-            else:
-                fields = ['x', 'y', 'z', 'intensity', 'semantic']
-                types = [np.float32, np.float32, np.float32, np.float32, np.int32]
-                pc_arr = np.load(fpth, allow_pickle=True).T
-                if pc_arr.shape[1] < 5:
-                    fields.pop(-1)
-                    types.pop(-1)
-                pc = PointCloud.from_points(pc_arr, fields=fields, types=types)
+            fields = ['x', 'y', 'z', 'intensity', 'semantic']
+            types = [np.float32, np.float32, np.float32, np.float32, np.int32]
+            pc_arr = np.load(fpth, allow_pickle=True).T
+            if pc_arr.shape[1] < 5:
+                fields.pop(-1)
+                types.pop(-1)
+            pc = PointCloud.from_points(pc_arr, fields=fields, types=types)
             return pc
         else:
             NotImplementedError()
-    @classmethod
-    def deserialize(cls, content:dict):
-        return cls(data_dir = content['data_dir'], 
-                   suffix = content['suffix'],
-                   fstem2time = content.get('fstem2time', None),
-                   option=content.get('option', None))
     
 class Box3DReader(BaseReader):
     def __init__(self, data_dir, suffix, fstem2time = None):
@@ -130,7 +144,7 @@ class CALIBReader:
             suffix = content.get('suffix', '.json')
         )
         
-class StaticTFReader:
+class TFStaticReader:
     def __init__(self, fpth:str, suffix: str, row_major:bool) -> None:
         self.fpth = fpth
         self.suffix = suffix

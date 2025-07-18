@@ -6,7 +6,7 @@ import os.path as osp
 from data_utils.writers import (
     ROSBAGWRITER,
     PCDWriter, 
-    StaticTFWriter,
+    TFStaticWriter,
     TimePosesWriter,
     CameraWriter,
     CALIBWriter,
@@ -16,7 +16,8 @@ from data_utils.writers import (
 from data_utils.readers import (
     BaseReader,
     PCDReader,
-    StaticTFReader,
+    OCCReader,
+    TFStaticReader,
     TimePosesReader,
     CameraReader,
     CALIBReader,
@@ -31,7 +32,8 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
         
     class2writer = {
         'pcd': PCDWriter,
-        'static_tf': StaticTFWriter,
+        'occ': PCDWriter, # ? Memo
+        'tf_static': TFStaticWriter,
         'time_poses': TimePosesWriter,
         'camera': CameraWriter,
         'calib': CALIBWriter,
@@ -40,7 +42,8 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
     }
     class2reader = {
         'pcd': PCDReader,
-        'static_tf': StaticTFReader,
+        'occ': OCCReader,
+        'tf_static': TFStaticReader,
         'time_poses': TimePosesReader,
         'camera': CameraReader,
         'calib': CALIBReader,
