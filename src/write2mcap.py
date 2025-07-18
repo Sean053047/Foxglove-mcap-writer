@@ -105,7 +105,7 @@ def main(args):
         writer: ROSBAGWRITER
         reader: BaseReader
         mcap = writer.init_writer(mcap)      
-        for i, fpth in enumerate(reader.all_files):
+        for i, fpth in tqdm(enumerate(reader.all_files), total=len(reader.all_files), desc=f"Writing {writer.topic} files:"):
             stamp = reader.get_Time(stamp=fpth.stem)
             writer.write(mcap, stamp, reader.load_data(fpth))    
             frame_time_record.append(stamp)

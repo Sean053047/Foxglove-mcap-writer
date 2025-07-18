@@ -14,9 +14,18 @@ CLASS2COLOR = {
             'DontCare': (0.7843,0.7843,0.7843),
             'Motorcycle': (0.0, 1.0, 0.588),
             'ScooterRider': (0.0, 1.0, 0.588),
-            'Bus': (0.5, 0.3, 0.2),
-            'Cart': (0.5, 0.2, 0.6)}
+            'Bus': (.8, 0.3, 0.2)}
 CLASS2COLOR.update( { k.lower():v for k,v in CLASS2COLOR.items()})
+
+def get_color(cls):
+    '''Return: [r, g, b] within range: [0, 1]'''
+    global CLASS2COLOR
+    
+    if cls not in CLASS2COLOR:
+        CLASS2COLOR[cls] = np.random.rand(3)
+    r, g, b = map(float, CLASS2COLOR[cls])
+    return r, g, b
+        
 
 def get_box_vertices( bbox, order='xy'):
     cols = np.sort(bbox[ [0,2]])
@@ -36,23 +45,3 @@ def get_quat_from_euler(roll, pitch, yaw):
 def get_quat_from_matrix(R):
     '''return:  [x,y,z,w]'''
     return Rotation.from_matrix(R).as_quat()
-
-# For PCD Results
-def tf_box3d(box3d:np.ndarray):
-    '''x: depth(length), y:width, z:height'''
-    tf_pos =np.array([
-        [0, 0, 1], 
-        [-1, 0,0], 
-        [ 0, 1,0]
-    ])
-    position = (tf_pos @ box3d[:3].reshape((-1,1))).flatten()
-    tf_sz =np.array([
-        [1, 0, 0], 
-        [0, 0, 1], 
-        [0, 1, 0]
-    ])
-    yaw = -box3d[-1]
-    
-    size = (tf_sz @ box3d[3:6].reshape((-1,1))).flatten()
-    quat = get_quat_from_euler(0, 0, yaw)
-    return position, size, quat

@@ -356,6 +356,3 @@ class TimePosesWriter(ROSBAGWRITER):
             frame_id=content.get('frame_id', 'base_link'),
             topic=content.get('topic', "/tpf"),
         )
-
-
-

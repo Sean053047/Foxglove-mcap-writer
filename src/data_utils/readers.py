@@ -45,7 +45,10 @@ class BaseReader:
 
     def get_Time(self, stamp:str) -> Time:
         stamp = stamp if self.fstem2time is None else self.fstem2time[stamp]
-        sec, nsec = map( int , (stamp[:-9], stamp[-9:]))
+        if '.' in stamp:
+            sec, nsec = map( int , stamp.split('.'))
+        else:
+            sec, nsec = map( int , (stamp[:-9], stamp[-9:]))
         return Time(sec=sec, nanosec=nsec)
     
     @classmethod
@@ -56,12 +59,34 @@ class BaseReader:
     
 # Todo: Need to check pcd format. Add use for feather files
 class PCDReader(BaseReader):
+    def __init__(self, data_dir:str,  suffix: str, fstem2time:str=None, option=None) -> None:
+        super().__init__(data_dir, suffix, fstem2time)
+        self.option = option
     def load_data(self, fpth:str):
         if self.suffix == '.pcd':
             pc = PointCloud.from_path(fpth)
             return pc
+        elif self.suffix == '.npy':
+            # ? This is suitable for RadarOcc .npy file.            
+            if self.option == 'radarocc':
+                raise NotImplementedError("RadarOcc .npy file is not supported yet.")
+            else:
+                fields = ['x', 'y', 'z', 'intensity', 'semantic']
+                types = [np.float32, np.float32, np.float32, np.float32, np.int32]
+                pc_arr = np.load(fpth, allow_pickle=True).T
+                if pc_arr.shape[1] < 5:
+                    fields.pop(-1)
+                    types.pop(-1)
+                pc = PointCloud.from_points(pc_arr, fields=fields, types=types)
+            return pc
         else:
             NotImplementedError()
+    @classmethod
+    def deserialize(cls, content:dict):
+        return cls(data_dir = content['data_dir'], 
+                   suffix = content['suffix'],
+                   fstem2time = content.get('fstem2time', None),
+                   option=content.get('option', None))
     
 class Box3DReader(BaseReader):
     def __init__(self, data_dir, suffix, fstem2time = None):
@@ -127,7 +152,7 @@ class StaticTFReader:
         )
 
 class TimePosesReader(BaseReader):
-    def __init__(self, fpth:str, suffix:str,) -> None:
+    def __init__(self, fpth:str, suffix:str, option='kradar') -> None:
         self.fpth = fpth
         self.suffix = suffix
     def load_data(self):
