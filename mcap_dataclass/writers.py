@@ -1,6 +1,6 @@
 import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent))
+import os.path as osp
+sys.path.append(osp.dirname(osp.dirname(osp.abspath(__file__))))
 from abc import abstractmethod
 import cv2
 import numpy as np
@@ -30,7 +30,7 @@ from foxglove_msgs.msg import (
     PosesInFrame
 )
 
-from .utils import ( 
+from utils.utils import ( 
     CLASS2COLOR,
 )
 '''x:forward, y:left, z:up'''

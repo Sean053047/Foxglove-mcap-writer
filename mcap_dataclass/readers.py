@@ -8,6 +8,7 @@ from pathlib import Path
 from pypcd4 import PointCloud
 from builtin_interfaces.msg import Time
 from scipy.spatial.transform import Rotation
+from utils.radarocc_tool import get_occ_grid_info
 IMAGE_SUFFIXES = ['.png', '.jpg', '.bmp']
 
 def from_json(fpth:str):
@@ -59,29 +60,40 @@ class BaseReader:
     
 # Todo: Need to check pcd format. Add use for feather files
 class OCCReader(BaseReader):
-    def __init__(self, data_dir:str, suffix: str, occ_info_fpth:str, fstem2time:str=None,  ) -> None:
+    ID2COLOR = {
+            0:[0., 0., 0., 0.],
+            1:[0., 0.7, 0, 1.0],
+            2:[0.8, 0.3, 0.5, 1.0],
+            3:[0.95, 0.6, 0.3, 1.0],
+            4:[0.5, 0, 0, 1.0],
+            5:[0., 0, 0.5, 1.0],
+            6:[0.2, 0.2, 0.2, 1.0],
+            7:[0.9, 0.5, 0.6, 1.0],
+            8:[0.25, 0.64, 1.0, 1.0],
+        }
+    
+    def __init__(self, data_dir:str, suffix: str, fstem2time:str=None,  ) -> None:
         super().__init__(data_dir, suffix, fstem2time)
-        self.occ_info_arr = np.load(occ_info_fpth, allow_pickle=True)
+        self.occ_info_arr = get_occ_grid_info(XYZ=True)
     
     def load_data(self, fpth:str):
-        occ = np .load(fpth, allow_pickle=True)
-        print(occ.shape)
-        exit()
+        '''format: R, A, E'''
         
-        fields = ['x', 'y', 'z', 'intensity', 'semantic']
-        types = [np.float32, np.float32, np.float32, np.float32, np.int32]
-        pc_arr = np.load(fpth, allow_pickle=True).T
-        if pc_arr.shape[1] < 5:
-            fields.pop(-1)
-            types.pop(-1)
-        pc = PointCloud.from_points(pc_arr, fields=fields, types=types)
+        occ = np .load(fpth, allow_pickle=True)
+        idx_r, idx_a, idx_e = (np.where(occ>0))
+        semantic = occ[idx_r, idx_a, idx_e]
+        color = np.array([self.ID2COLOR[ss] for ss in semantic], dtype=np.float32)
+        occ_pc_arr = np.concatenate(
+            [self.occ_info_arr[idx_r, idx_a, idx_e], color], axis=-1)
+        fields = ['x', 'y', 'z','r', 'g', 'b', 'a']
+        types = [np.float32]*7
+        pc = PointCloud.from_points(occ_pc_arr, fields=fields, types=types)
         return pc
     @classmethod
     def deserialize(cls, content:dict):
         return cls(
             data_dir = content['data_dir'],
             suffix = content['suffix'],
-            occ_info_fpth = content['occ_info_fpth'],
             fstem2time = content.get('fstem2time', None)
         )
 class PCDReader(BaseReader):

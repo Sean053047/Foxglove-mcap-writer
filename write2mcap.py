@@ -3,7 +3,7 @@ import rosbag2_py
 from tqdm import tqdm
 from collections import defaultdict
 import os.path as osp
-from data_utils.writers import (
+from mcap_dataclass.writers import (
     ROSBAGWRITER,
     PCDWriter, 
     TFStaticWriter,
@@ -13,7 +13,7 @@ from data_utils.writers import (
     Box2DWriter,
     Box3DWriter,
 )
-from data_utils.readers import (
+from mcap_dataclass.readers import (
     BaseReader,
     PCDReader,
     OCCReader,
@@ -29,7 +29,12 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
     import yaml
     with open(setting_fpth, 'r') as file:
         contents =yaml.safe_load(file)
-        
+    # Append data_root to the paths
+    for cat in contents.keys():
+        for idx in range(len(contents[cat])):
+            for name in ('fpth', 'fstem2time', 'data_dir'):
+                if name in contents[cat][idx]:
+                    contents[cat][idx][name] = osp.join(data_root, contents[cat][idx][name])
     class2writer = {
         'pcd': PCDWriter,
         'occ': PCDWriter, # ? Memo
@@ -61,7 +66,6 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
         reader_cls : BaseReader    
         if key in ('static_tf', 'calib', 'time_poses'):
             for setting in setting_list:
-                setting['fpth']= osp.join(data_root, setting['fpth'])
                 tf_IO.append(
                     (
                         reader_cls.deserialize(setting),
@@ -70,7 +74,6 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
                 )
         else:
             for setting in setting_list:
-                setting['data_dir']= osp.join(data_root, setting['data_dir'])
                 data_IO.append(
                     (reader_cls.deserialize(setting), 
                     writer_cls.deserialize(setting))
@@ -96,6 +99,9 @@ def main(args):
     # Read Elan data path
     data_IO, tf_IO = Initialize_from_yaml(args.data_root, args.yaml)
     mcap = rosbag2_py.SequentialWriter()
+    if osp.exists(args.mcap):
+        import shutil
+        shutil.rmtree(args.mcap)
     mcap.open(
         rosbag2_py.StorageOptions(uri=args.mcap, storage_id="mcap"),
         rosbag2_py.ConverterOptions(
