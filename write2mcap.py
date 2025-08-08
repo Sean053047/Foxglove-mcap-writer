@@ -32,7 +32,8 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
     # Append data_root to the paths
     for cat in contents.keys():
         for idx in range(len(contents[cat])):
-            for name in ('fpth', 'fstem2time', 'data_dir'):
+            # for name in ('fpth', 'fstem2time', 'data_dir'):
+            for name in ( 'fstem2time', 'data_dir'):
                 if name in contents[cat][idx]:
                     contents[cat][idx][name] = osp.join(data_root, contents[cat][idx][name])
     class2writer = {
@@ -64,7 +65,7 @@ def Initialize_from_yaml(data_root:str, setting_fpth:str):
         reader_cls = class2reader[key]
         writer_cls : ROSBAGWRITER
         reader_cls : BaseReader    
-        if key in ('static_tf', 'calib', 'time_poses'):
+        if key in ('tf_static', 'calib', 'time_poses'):
             for setting in setting_list:
                 tf_IO.append(
                     (

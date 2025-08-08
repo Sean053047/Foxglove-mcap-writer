@@ -31,7 +31,7 @@ camera:
     schema: 'foxglove_msgs/msg/CompressedImage'
     topic:  '/camera'
   
-static_tf:
+tf_static:
   - fpth: 'dataset/tf/camera.json'
     suffix: '.json'
     row_major: False
@@ -52,3 +52,4 @@ calib:
     frame_id: 'camera'
     schema: 'foxglove_msgs/msg/CameraCalibration'
     topic: '/camera_info'
+
