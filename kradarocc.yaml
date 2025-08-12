@@ -1,76 +1,81 @@
-camera:
-  - data_dir: 'cam-front'
-    fstem2time: 'time_info/cam-front.json'
-    suffix: '.png'
-    frame_id: 'camera'
-    schema: 'foxglove_msgs/msg/CompressedImage'
-    topic:  'cam-front'
-    option: 'kradar'
-pcd:
-#   - data_dir: 'semantic_scene_pc'
-#     fstem2time: 'time_info/semantic_scene_pc.json'
-#     suffix: '.npy'
-#     frame_id: 'base_link'
-#     schema: 'foxglove_msgs/msg/PointCloud'
-#     topic: 'sspc'
+# camera:
+#   - data_dir: cam-front
+#     fstem2time: time_info/cam-front.json
+#     suffix: .png
+#     frame_id: camera
+#     topic:  cam_front
+#     option: kradar
+# pcd:
+#   - data_dir: semantic_scene_pc
+#     fstem2time: time_info/semantic_scene_pc.json
+#     suffix: .npy
+#     frame_id: base_link
+#     schema: foxglove_msgs/msg/PointCloud
+#     topic: sspc
 
-  - data_dir: 'rpc5p'
-    fstem2time: 'time_info/rpc.json'
-    suffix: '.npy'
-    frame_id: 'base_link'
-    schema: 'foxglove_msgs/msg/PointCloud'
-    topic: 'rpc5p'
-    option: 'rpc'
+  # - data_dir: rpc5p
+  #   fstem2time: time_info/rpc.json
+  #   suffix: .npy
+  #   frame_id: base_link
+  #   schema: foxglove_msgs/msg/PointCloud
+  #   topic: rpc5p
+  #   option: rpc
 
-  - data_dir: 'rpc1p'
-    fstem2time: 'time_info/rpc.json'
-    suffix: '.npy'
-    frame_id: 'base_link'
-    schema: 'foxglove_msgs/msg/PointCloud'
-    topic: 'rpc1p'
-    option: 'rpc'
+  # - data_dir: rpc1p
+  #   fstem2time: time_info/rpc.json
+  #   suffix: .npy
+  #   frame_id: base_link
+  #   schema: foxglove_msgs/msg/PointCloud
+  #   topic: rpc1p
+  #   option: rpc
 
-  - data_dir: 'cfar05p'
-    fstem2time: 'time_info/rpc.json'
-    suffix: '.npy'
-    frame_id: 'base_link'
-    schema: 'foxglove_msgs/msg/PointCloud'
-    topic: 'cfar05p'
-    option: 'rpc'
+  # - data_dir: cfar05p
+  #   fstem2time: time_info/rpc.json
+  #   suffix: .npy
+  #   frame_id: base_link
+  #   schema: foxglove_msgs/msg/PointCloud
+  #   topic: cfar05p
+  #   option: rpc
 
-  - data_dir: 'cfar1p'
-    fstem2time: 'time_info/rpc.json'
-    suffix: '.npy'
-    frame_id: 'base_link'
-    schema: 'foxglove_msgs/msg/PointCloud'
-    topic: 'cfar1p'
-    option: 'rpc'
+  # - data_dir: cfar1p
+  #   fstem2time: time_info/rpc.json
+  #   suffix: .npy
+  #   frame_id: base_link
+  #   schema: foxglove_msgs/msg/PointCloud
+  #   topic: cfar1p
+  #   option: rpc
 
-  - data_dir: 'cfar5p'
-    fstem2time: 'time_info/rpc.json'
-    suffix: '.npy'
-    frame_id: 'base_link'
-    schema: 'foxglove_msgs/msg/PointCloud'
-    topic: 'cfar5p'
-    option: 'rpc'
+  # - data_dir: cfar5p
+  #   fstem2time: time_info/rpc.json
+  #   suffix: .npy
+  #   frame_id: base_link
+  #   schema: foxglove_msgs/msg/PointCloud
+  #   topic: cfar5p
+  #   option: rpc
 
-
-
+box3d:
+  - data_dir: KRadar_refined_label_by_UWIPL
+    fstem2time: time_info/KRadar_refined_label_by_UWIPL.json
+    suffix: .txt
+    frame_id: lidar
+    schema: foxglove_msgs/msg/SceneUpdate
+    topic: label_v2_0
+    option: kradar.v2_0
 occ:
-  - data_dir: 'semantic_occupancy'
-    fstem2time: 'time_info/semantic_occupancy.json'
-    suffix: '.npy'
-    frame_id: 'base_link'
-    schema: 'foxglove_msgs/msg/PointCloud'
-    topic: 'occ'
+  - data_dir: semantic_occupancy
+    fstem2time: time_info/semantic_occupancy.json
+    suffix: .npy
+    frame_id: base_link
+    schema: foxglove_msgs/msg/PointCloud
+    topic: occ
 
 
-# tf_static:
-#   - fpth: '/home/itri_sean/Desktop/NYCU/Research0716/Foxglove-mcap-writer/resource/lidar2radar.json'
-#     suffix: '.json'
-#     row_major: True
-#     schema: 'foxglove_msgs/msg/FrameTransforms'
-#     parent_frame_id: 'radar'
-#     child_frame_id: 'base_link'
-#     topic: 'l2r'
-# # 
+tf_static:
+  - fpth: /home/itri_sean/Desktop/NYCU/Research0716/Foxglove-mcap-writer/resource/lidar2radar.json
+    suffix: .json
+    row_major: True
+    schema: foxglove_msgs/msg/FrameTransforms
+    parent_frame_id: base_link
+    child_frame_id: lidar
+    topic: l2r
+# # # 

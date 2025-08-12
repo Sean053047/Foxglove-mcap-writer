@@ -23,6 +23,7 @@ ID2COLOR = {
             7:[0.9, 0.5, 0.6, 1.0],
             8:[0.25, 0.64, 1.0, 1.0],
         }
+CLASS2COLOR = {CLS_NAME: ID2COLOR[ID] for CLS_NAME, ID in CLS_NAME2ID.items()}          
 def get_label(version, file_path, calib:bool=False):
     with open(file_path, 'r') as f:
         lines = f.readlines()
@@ -108,7 +109,7 @@ def deserialize_list_tuple_objs(list_tuple_objs:list):
         dict_labels.append({
             'class_name': cls_name,
             'translation': (x, y, z),
-            'rotation': Rotation.from_euler('z', th).as_quat(scaler_first=True),
+            'rotation': Rotation.from_euler('z', th).as_quat(scalar_first=True), # w, x, y, z
             'size': (l, w, h),
             'track_id': trk,
             'availability': avail

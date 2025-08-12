@@ -2,19 +2,19 @@ import json, yaml
 import numpy as np 
 from scipy.spatial.transform import Rotation
 CLASS2COLOR = {
-            'Cyclist': (1.0, 0.588,0.0),
-            'Pedestrian':(0.7843, 0.13, 0.0),
-            'Person':(0.6274, 0.1176, 0.0),
-            'Car': (0.0, 1.0, 0.588),
-            'Van': (0.0, 1.0, 0.392),
-            'Vehicle': (1.0, 0.588,0.0),
-            'Truck': (0.0, 1.0, 0.1961),
-            'Tram': (0.0, 0.3922,1.0),
-            'Misc': (0.0, 0.1961,1.0),
-            'DontCare': (0.7843,0.7843,0.7843),
-            'Motorcycle': (0.0, 1.0, 0.588),
-            'ScooterRider': (0.0, 1.0, 0.588),
-            'Bus': (.8, 0.3, 0.2)}
+            'Cyclist': (1.0, 0.588,0.0, 1.0),
+            'Pedestrian':(0.7843, 0.13, 0.0, 1.0),
+            'Person':(0.6274, 0.1176, 0.0, 1.0),
+            'Car': (0.0, 1.0, 0.588, 1.0),
+            'Van': (0.0, 1.0, 0.392, 1.0),
+            'Vehicle': (1.0, 0.588,0.0, 1.0),
+            'Truck': (0.0, 1.0, 0.1961, 1.0),
+            'Tram': (0.0, 0.3922,1.0, 1.0),
+            'Misc': (0.0, 0.1961,1.0, 1.0),
+            'DontCare': (0.7843,0.7843,0.7843, 1.0),
+            'Motorcycle': (0.0, 1.0, 0.588, 1.0),
+            'ScooterRider': (0.0, 1.0, 0.588, 1.0),
+            'Bus': (.8, 0.3, 0.2, 1.0)}
 CLASS2COLOR.update( { k.lower():v for k,v in CLASS2COLOR.items()})
 
 def get_color(cls):

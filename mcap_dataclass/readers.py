@@ -109,7 +109,8 @@ class Box3DReader(BaseReader):
     '''Support option: kradar.v1_0, kradar.v2_0, kradar.v2_1'''
     def load_data(self, fpth:str):
         if 'kradar' in self.option:
-            version = self.option.split('.')[-1]
+            version = self.option.strip().split('.')[-1]
+            assert version in ('v1_0', 'v2_0', 'v2_1'), 'Forget to set the version for kradar box reader.'
             _, data = get_label(version, file_path=fpth)
             data = deserialize_list_tuple_objs(data)
         elif self.suffix == '.json':

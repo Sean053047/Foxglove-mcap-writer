@@ -24,22 +24,26 @@ from foxglove_msgs.msg import (
     CameraCalibration,
     SceneUpdate,
     SceneEntity,
+    SceneEntityDeletion,
     FrameTransforms,
     FrameTransform, 
     PoseInFrame,
     PosesInFrame
 )
-
+from utils.kradar_tool import CLASS2COLOR as KRADAR_CLASS2COLOR
 from utils.utils import ( 
     CLASS2COLOR,
 )
+
 '''x:forward, y:left, z:up'''
 class ROSBAGWRITER:
-    def __init__(self, frame_id, schema, topic) -> None:
+    SCHEMA= None
+    def __init__(self, frame_id, topic, schema, option=None) -> None:
+        assert self.SCHEMA is not None, "Schema must be defined for inherited classes."
         self.frame_id = frame_id
         self.schema = schema
         self.topic = topic
-        
+        self.option = option
     def init_writer(self, writer):
         writer.create_topic(
             rosbag2_py.TopicMetadata(
@@ -62,8 +66,9 @@ class ROSBAGWRITER:
     def deserialize(cls, content:dict):
         return cls(
             frame_id = content['frame_id'],
-            schema = content['schema'],
-            topic = content['topic']
+            topic = content['topic'],
+            schema = content.get('schema', cls.SCHEMA),
+            option = content.get('option', None)
         )
 
 class PCDWriter(ROSBAGWRITER):
@@ -77,7 +82,7 @@ class PCDWriter(ROSBAGWRITER):
         np.float32: 7,
         np.float64: 8,
     }
-    
+    SCHEMA = "foxglove_msgs/msg/PointCloud"
     def write(self, mcap_writer, stamp, pc):
         msg = PointCloud(
                 timestamp = stamp,
@@ -108,40 +113,44 @@ class PCDWriter(ROSBAGWRITER):
         msg.data = pc_data.tobytes()
         self.write2bag(mcap_writer, msg, stamp)
 
-    @classmethod
-    def deserialize(cls, content: dict):
-        return cls(
-            frame_id=content.get('frame_id', "/pcd"),
-            schema=content.get('schema', "foxglove_msgs/msg/PointCloud"),
-            topic=content.get('topic', "/pointcloud"),
-        )
-
 class Box3DWriter(ROSBAGWRITER):
-    
+    SCHEMA = 'foxglove_msgs/msg/SceneUpdate'
     def __init__(self, 
-                 frame_id = '/pcd', 
-                 schema = 'foxglove_msgs/msg/SceneUpdate', 
-                 topic = '/box3d',
+                 frame_id,
+                 topic,
+                 schema,
+                 option = None,
                  color_offset = [0, 0, 0]
                  ) -> None:
-        super().__init__(frame_id, schema, topic)
+        super().__init__(frame_id, topic, schema, option)
         self.color_offset = color_offset
-    def write(self, writer, stamp, boxes3d):
+        self.previous = None
+        self.option = option
+        self.class2color = KRADAR_CLASS2COLOR if 'kradar' in self.option else CLASS2COLOR
         
+    def write(self, writer, stamp, boxes3d):
+            
             msg = SceneUpdate()
-            scene_entity = SceneEntity(
-                timestamp = stamp,
-                frame_id = self.frame_id,
-                id = self.topic,
-            )
+            if self.previous is not None:
+                msg.deletions.append(SceneEntityDeletion(
+                    timestamp = self.previous,
+                    type=1 # delete all in previous timestamp
+                ))
             for box3d in boxes3d:
                 # Something weird
+                id:str = str(box3d['track_id'])
                 cls:str = box3d['class_name']
                 position:list = list(map(float, box3d['translation'])) # x, y, z
                 quat:list = box3d['rotation'] # rw, rx, ry, rz
                 
+                scene_entity = SceneEntity(
+                    timestamp = stamp,
+                    frame_id = self.frame_id,
+                    id = id,
+                )
+                
                 size = box3d['size']
-                r,g,b = map(float,CLASS2COLOR[cls])
+                r, g, b, _ = map(float,self.class2color[cls]) 
                 r = max(min(r + self.color_offset[0], 1.0), 0.0)
                 g = max(min(g + self.color_offset[1], 1.0), 0.0)
                 b = max(min(b + self.color_offset[2], 1.0), 0.0)
@@ -153,38 +162,44 @@ class Box3DWriter(ROSBAGWRITER):
                     color = Color(r=r, g=g, b=b, a=0.5)
                 )
                 scene_entity.cubes.append(cube)
-                # Need to check?
-                scene_entity.texts.append(
-                    TextPrimitive(
-                        pose=Pose(    position = Point(x=position[0], y=position[1], z=position[2]),
-                                orientation = Quaternion(x = quat[1], y =quat[2], z=quat[3], w=quat[0])
-                            ),
-                        font_size=100.0,
-                        scale_invariant = False,
-                        billboard = False,
-                        text = f"class {cls}"
-                    )
-                )
-            msg.entities.append(scene_entity)
+                # # Need to check?
+                # scene_entity.texts.append(
+                #     TextPrimitive(
+                #         pose=Pose(    position = Point(x=position[0], y=position[1], z=position[2]),
+                #                 orientation = Quaternion(x = quat[1], y =quat[2], z=quat[3], w=quat[0])
+                #             ),
+                #         font_size=100.0,
+                #         scale_invariant = False,
+                #         billboard = False,
+                #         text = f"class {cls}"
+                #     )
+                # )
+                msg.entities.append(scene_entity)
+            self.previous = stamp
             self.write2bag(writer, msg, stamp)
     
     @classmethod
-    def deserialize(cls, content: dict):
-        return cls( frame_id=content.get('frame_id', '/pcd'),  
-                    schema = content.get('schema', 'foxglove_msgs/msg/SceneUpdate'), 
-                    topic = content.get('topic', '/box3d'),
-                    color_offset = content.get('color_offset', (0,0,0)))
+    def deserialize(cls, content:dict):
+        return cls(
+            frame_id = content['frame_id'],
+            topic = content['topic'],
+            schema = content.get('schema', cls.SCHEMA),
+            option = content.get('option', None),
+            color_offset = content.get('color_offset', (0,0,0))
+        )
+                    
 
 class CameraWriter(ROSBAGWRITER):
-    
+    SCHEMA="foxglove_msgs/msg/CompressedImage"
     def __init__(
         self,
-        frame_id="/camera",
-        schema="foxglove_msgs/msg/CompressedImage",
-        topic="/image",
+        frame_id,
+        topic,
+        schema,
+        option = None,
         suffix = '.png',
     ) -> None:
-        super().__init__(frame_id, schema, topic)
+        super().__init__(frame_id, topic, schema, option)
         self.suffix = suffix
 
     def write(self, mcap_writer, stamp, img):
@@ -200,22 +215,18 @@ class CameraWriter(ROSBAGWRITER):
 
     @classmethod
     def deserialize(cls, content:dict):
+        
         return cls(
-            frame_id=content.get('frame_id', "/camera"),
-            schema=content.get('schema', "foxglove_msgs/msg/CompressedImage"),
-            topic=content.get('topic', "/image"),
+            frame_id=content['frame_id'],
+            topic=content['topic'],
+            schema=content.get('schema', cls.SCHEMA),
+            option = content.get('option', None),
             suffix = content.get('suffix', '.png')
         )
 
-# Todo: Need to refine
+# ? Currently, unused.
 class Box2DWriter(ROSBAGWRITER):
-    def __init__(self, 
-                 frame_id="/camera", 
-                 schema="foxglove_msgs/msg/ImageAnnotations", 
-                 topic="/box2d",
-                 ) -> None:
-        super().__init__(frame_id, schema, topic)
-    
+    SCHEMA="foxglove_msgs/msg/ImageAnnotations"
     def write(self, writer):
         
         for (_, cls_bboxes), stamp in zip(
@@ -254,22 +265,9 @@ class Box2DWriter(ROSBAGWRITER):
                     )
                 )
             self.write2bag(writer, msg, stamp)
-    
-    @classmethod
-    def deserialize(cls, content: dict):
-        return cls(
-            frame_id=content.get('frame_id', "/camera"),
-            schema=content.get('schema', "foxglove_msgs/msg/ImageAnnotations"),
-            topic=content.get('topic', "/box2d"),
-        )
 
+# ? Currently, unused
 class CALIBWriter(ROSBAGWRITER):
-    def __init__(self, 
-                 frame_id = "/camera", 
-                 schema = "foxglove_msgs/msg/CameraCalibration", 
-                 topic = "/camera_info",
-                ) -> None:
-        super().__init__(frame_id, schema, topic)
         
     def write(self, writer, stamp, matrices):
         msg = CameraCalibration(
@@ -288,16 +286,19 @@ class CALIBWriter(ROSBAGWRITER):
             parent_frame_id=content.get('parent_frame_id', "/camera"),
             schema=content.get('schema', "foxglove_msgs/msg/CameraCalibration"),
             topic=content.get('topic', "/camera_info"),
+            option = content.get('option', None)
         )
 
 class TFStaticWriter(ROSBAGWRITER):
+    SCHEMA='foxglove_msgs/msg/FrameTransforms'
     def __init__(self, 
-                 schema = 'foxglove_msgs/msg/FrameTransforms', 
+                 topic,
+                 schema, 
                  parent_frame_id =None,
                  child_frame_id = None,
-                 topic = '/tf',
+                 option = None
                  ) -> None:
-        super().__init__(None, schema, topic)
+        super().__init__(None, topic, schema, option)
         del self.frame_id
         self.parent_frame_id = parent_frame_id
         self.child_frame_id = child_frame_id
@@ -319,20 +320,15 @@ class TFStaticWriter(ROSBAGWRITER):
     @classmethod
     def deserialize(cls, content: dict):
         return cls(
-            schema=content.get('schema', "foxglove_msgs/msg/PosesIN"),
-            topic=content.get('topic', "/tf"),
-            parent_frame_id=content.get('parent_frame_id', None),
-            child_frame_id=content.get('child_frame_id', None),
+            topic = content['topic'],
+            schema = content.get('schema', cls.SCHEMA),
+            parent_frame_id = content['parent_frame_id'],
+            child_frame_id = content['child_frame_id'],
+            option = content.get('option', None)
         )
 
 class TimePosesWriter(ROSBAGWRITER):
-    def __init__(self, 
-                 schema = 'foxglove_msgs/msg/PoseInFrame', 
-                 frame_id ='base_link',
-                 topic = '/tpf',
-                 ) -> None:
-        super().__init__(frame_id, schema, topic)
-        
+    SCHEMA = 'foxglove_msgs/msg/PosesInFrame'
     def write(self, writer, stamps, tps):
         '''rotation: (w, x, y, z) for quaternion, translation: (x, y, z)'''
         for stamp, time_pose in zip(stamps, tps):
@@ -347,11 +343,3 @@ class TimePosesWriter(ROSBAGWRITER):
                 orientation=Quaternion(w=float(quat[0]), x=float(quat[1]), y=float(quat[2]), z=float(quat[3]))
             )
             self.write2bag(writer, msg, stamp)
-            
-    @classmethod
-    def deserialize(cls, content: dict):
-        return cls(
-            schema=content.get('schema', "foxglove_msgs/msg/PoseInFrame"),
-            frame_id=content.get('frame_id', 'base_link'),
-            topic=content.get('topic', "/tpf"),
-        )
