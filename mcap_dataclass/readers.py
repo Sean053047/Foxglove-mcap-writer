@@ -90,6 +90,8 @@ class PCDReader(BaseReader):
         elif self.suffix == '.npy':
             if self.option == 'rpc':
                 pc_arr = np.load(fpth, allow_pickle=True)
+                range_mask = pc_arr[:, 5] < 100.0 # ! Temporary added
+                pc_arr = pc_arr[range_mask, :]
                 fields = ['x', 'y', 'z', 'pw', 'dop']
                 types = [np.float32] * 5
                 pc = PointCloud.from_points(pc_arr[:, :5], fields=fields, types=types)
