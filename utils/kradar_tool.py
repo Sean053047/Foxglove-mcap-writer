@@ -24,7 +24,7 @@ ID2COLOR = {
             8:[0.25, 0.64, 1.0, 1.0],
         }
 CLASS2COLOR = {CLS_NAME: ID2COLOR[ID] for CLS_NAME, ID in CLS_NAME2ID.items()}          
-def get_label(version, file_path, calib:bool=False):
+def load_label(version, file_path, calib:bool=False):
     with open(file_path, 'r') as f:
         lines = f.readlines()
     list_tuple_objs = []

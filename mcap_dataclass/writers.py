@@ -34,7 +34,13 @@ from utils.kradar_tool import CLASS2COLOR as KRADAR_CLASS2COLOR
 from utils.utils import ( 
     CLASS2COLOR,
 )
-
+OPTIONS = dict(
+    PCDWriter = (),
+    Box3DWriter = ('kradar'),
+    CameraWriter = (),
+    CALIBWriter = (),
+    TFStaticWriter = ()
+)
 '''x:forward, y:left, z:up'''
 class ROSBAGWRITER:
     SCHEMA= None
@@ -44,6 +50,7 @@ class ROSBAGWRITER:
         self.schema = schema
         self.topic = topic
         self.option = option
+    
     def init_writer(self, writer):
         writer.create_topic(
             rosbag2_py.TopicMetadata(
@@ -62,6 +69,8 @@ class ROSBAGWRITER:
         timestamp = int(int(str(stamp.sec)[st_indx:]) * 1e9 + stamp.nanosec)
         writer.write(self.topic, serialize_message(msg), timestamp)
     
+    def __repr__(self):
+        return f"{self.__class__.__name__}(topic={self.topic}, frame_id={self.frame_id}, schema={self.schema}, option={self.option})"
     @classmethod
     def deserialize(cls, content:dict):
         return cls(
@@ -91,25 +100,18 @@ class PCDWriter(ROSBAGWRITER):
                             orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=0.0)
                 )
         )
-        lls = ['x', 'y', 'z', 'r','g','b','a']
-        fields = [ ll for ll in pc.fields if ll in lls]
-        types = [pc.types[i] for i, ll in enumerate(pc.fields) if ll in lls]
+        
+        fields = pc.fields
+        types = pc.types
         pc_data = pc.numpy(fields)
-        N = pc_data.shape[0]
+        pc_data = pc_data.astype(np.float32)
         # Todo: Make it more generalized
+        # ? Recently save each data in same itemsize
         msg.point_stride = pc_data.itemsize * len(fields)
         msg.fields = [
-            PackedElementField(name="x", offset=0, type=7),
-            PackedElementField(name="y", offset=4, type=7),
-            PackedElementField(name="z", offset=8, type=7),
-        ]+  ([
-            PackedElementField(name="red", offset=12, type=7),
-            PackedElementField(name="green", offset=16, type=7),
-            PackedElementField(name="blue", offset=20, type=7),
-        ] if {'r', 'g', 'b'} <= set(fields) else []
-        ) + ([
-            PackedElementField(name="alpha", offset=24, type=7),
-        ] if 'a' in fields else [])
+            PackedElementField(name=name, offset=i * pc_data.itemsize, type=self.NP2ROSTYPE[type])
+            for i, (name, type) in enumerate(zip(fields, types))
+        ]
         msg.data = pc_data.tobytes()
         self.write2bag(mcap_writer, msg, stamp)
 
@@ -224,6 +226,61 @@ class CameraWriter(ROSBAGWRITER):
             suffix = content.get('suffix', '.png')
         )
 
+class CALIBWriter(ROSBAGWRITER):
+    SCHEMA='foxglove_msgs/msg/CameraCalibration'
+    def write(self, writer, stamp, matrices):
+        msg = CameraCalibration(
+            timestamp = stamp,
+            frame_id = self.frame_id,
+            height = int(matrices['image_height']),
+            width = int(matrices['image_width']),
+            k = matrices['intrinsic'],
+            p = matrices['projection_matrix'],
+            distortion_model = matrices.get('distortion_model', str()),
+            d = matrices.get('distortion', []),
+        )
+        self.write2bag(writer, msg, stamp)
+
+class TFStaticWriter(ROSBAGWRITER):
+    SCHEMA='foxglove_msgs/msg/FrameTransforms'
+    def __init__(self, 
+                 topic,
+                 schema, 
+                 parent2child_pairs,
+                 option = None
+                 ) -> None:
+        super().__init__(None, topic, schema, option)
+        del self.frame_id
+        self.parent2child_pairs=parent2child_pairs
+        
+    def write(self, writer, stamp, stf_list):
+            msg = FrameTransforms()
+            assert len(stf_list) == len(self.parent2child_pairs), 'Length mismatch between stf_list and parent2child_pairs'
+            for stf, (parent, child) in zip(stf_list, self.parent2child_pairs):
+                translate, quat = stf[:3, 3].flatten(), Rotation.from_matrix(stf[:3,:3]).as_quat()
+                msg.transforms.append(
+                    FrameTransform(
+                        timestamp = stamp,
+                        parent_frame_id = parent,
+                        child_frame_id = child,
+                        translation= Vector3(x= translate[0], y=translate[1], z=translate[2]),
+                        rotation = Quaternion(x = quat[0], y =quat[1], z=quat[2], w=quat[3]), 
+                    )
+                )
+            self.write2bag(writer, msg, stamp)
+    def __repr__(self):
+        return f"{self.__class__.__name__}(topic={self.topic}, parent_frame_id={self.parent_frame_id}, child_frame_id={self.child_frame_id}, option={self.option})"    
+    @classmethod
+    def deserialize(cls, content: dict):
+        parent2child_pairs = content['parent2child_pairs']
+        if not type(parent2child_pairs[0]) in (list, tuple):
+            parent2child_pairs = [parent2child_pairs]
+        return cls(
+            topic = content['topic'],
+            schema = content.get('schema', cls.SCHEMA),
+            parent2child_pairs = parent2child_pairs,
+            option = content.get('option', None)
+        )
 # ? Currently, unused.
 class Box2DWriter(ROSBAGWRITER):
     SCHEMA="foxglove_msgs/msg/ImageAnnotations"
@@ -267,66 +324,6 @@ class Box2DWriter(ROSBAGWRITER):
             self.write2bag(writer, msg, stamp)
 
 # ? Currently, unused
-class CALIBWriter(ROSBAGWRITER):
-        
-    def write(self, writer, stamp, matrices):
-        msg = CameraCalibration(
-            timestamp = stamp,
-            frame_id = self.frame_id,
-            height = int(matrices['image_height']),
-            width = int(matrices['image_width']),
-            k = matrices['intrinsic'],
-            p = matrices['projection_matrix']
-        )
-        self.write2bag(writer, msg, stamp)
-        
-    @classmethod
-    def deserialize(cls, content: dict):
-        return cls(
-            parent_frame_id=content.get('parent_frame_id', "/camera"),
-            schema=content.get('schema', "foxglove_msgs/msg/CameraCalibration"),
-            topic=content.get('topic', "/camera_info"),
-            option = content.get('option', None)
-        )
-
-class TFStaticWriter(ROSBAGWRITER):
-    SCHEMA='foxglove_msgs/msg/FrameTransforms'
-    def __init__(self, 
-                 topic,
-                 schema, 
-                 parent_frame_id =None,
-                 child_frame_id = None,
-                 option = None
-                 ) -> None:
-        super().__init__(None, topic, schema, option)
-        del self.frame_id
-        self.parent_frame_id = parent_frame_id
-        self.child_frame_id = child_frame_id
-        
-    def write(self, writer, stamp, stf):
-            msg = FrameTransforms()
-            translate, quat = stf[:3, 3].flatten(), Rotation.from_matrix(stf[:3,:3]).as_quat()
-            msg.transforms.append(
-                FrameTransform(
-                    timestamp = stamp,
-                    parent_frame_id = self.parent_frame_id,
-                    child_frame_id = self.child_frame_id,
-                    translation= Vector3(x= translate[0], y=translate[1], z=translate[2]),
-                    rotation = Quaternion(x = quat[0], y =quat[1], z=quat[2], w=quat[3]), 
-                )
-            )
-            self.write2bag(writer, msg, stamp)
-            
-    @classmethod
-    def deserialize(cls, content: dict):
-        return cls(
-            topic = content['topic'],
-            schema = content.get('schema', cls.SCHEMA),
-            parent_frame_id = content['parent_frame_id'],
-            child_frame_id = content['child_frame_id'],
-            option = content.get('option', None)
-        )
-
 class TimePosesWriter(ROSBAGWRITER):
     SCHEMA = 'foxglove_msgs/msg/PosesInFrame'
     def write(self, writer, stamps, tps):

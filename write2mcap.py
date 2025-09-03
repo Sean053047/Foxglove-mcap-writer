@@ -120,6 +120,7 @@ def main(args):
             writer.write(mcap, stamp, reader.load_data(fpth))    
             frame_time_record.append(stamp)
     # * Iterate over tf IO
+    
     for reader, writer in tqdm(tf_IO, total=len(tf_IO), desc="TF IO:"):
         # Write static tf
         mcap = writer.init_writer(mcap)
