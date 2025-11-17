@@ -77,6 +77,7 @@ class BaseReader:
                    fstem2time = content.get('fstem2time', None),
                    option = content.get('option', None))
     # Todo: Need to check pcd format. Add use for feather files
+
 class OCCReader(BaseReader):
     def __init__(self, data_dir:str, suffix: str, fstem2time:str=None, option=None ) -> None:
         super().__init__(data_dir, suffix, fstem2time)
@@ -125,18 +126,22 @@ class PCDReader(BaseReader):
         if self.suffix == '.pcd':
             pc = PointCloud.from_path(fpth)
         elif self.suffix == '.npy':
+            pc_arr = np.load(fpth, allow_pickle=True)
             if self.option == 'rpc':
-                pc_arr = np.load(fpth, allow_pickle=True)
                 range_mask = pc_arr[:, 5] < 100.0 # ! Temporary added
                 pc_arr = pc_arr[range_mask, :]
-                
                 pw = pc_arr[:, 3:4]
                 r = pc_arr[:, 5:6] 
                 approx_rcs = r**4 * pw 
-                points = np.concatenate([pc_arr[:, :5], np.log1p(pc_arr[:, 3:4]), approx_rcs], axis=1)
-                fields = ['x', 'y', 'z', 'pw', 'dop', 'logpw', 'approx_rcs']
+                pc_arr = np.concatenate([pc_arr[:, :5], 10*np.log10(pc_arr[:, 3:4]+1e-6), approx_rcs], axis=1)
+                fields = ['x', 'y', 'z', 'pw', 'dop', 'pw(dB)', 'approx_rcs']
                 types = [np.float32] * 7
-                pc = PointCloud.from_points(points, fields=fields, types=types)
+            elif self.option == 'ldr_query_pw':
+                fields = ['x', 'y', 'z', 'pw_dB', 'opacity']
+                types = [np.float32] * 5
+            elif self.option == 'gs_occupancy':
+                fields = ['x', 'y', 'z', 'pw_dB']
+                types = [np.float32] * 4
             else:
                 # ? This is suitable for RadarOcc .npy file.            
                 fields = ['x', 'y', 'z', 'intensity', 'semantic']
@@ -145,7 +150,7 @@ class PCDReader(BaseReader):
                 if pc_arr.shape[1] < 5:
                     fields.pop(-1)
                     types.pop(-1)
-                pc = PointCloud.from_points(pc_arr, fields=fields, types=types)
+            pc = PointCloud.from_points(pc_arr, fields=fields, types=types)
         else:
             NotImplementedError()
         return pc

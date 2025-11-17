@@ -5,14 +5,37 @@ camera:
     frame_id: front0
     topic:  cf0
     option: kradar
-
+  # - data_dir: viz_rt_v2_0
+  #   fstem2time: time_info/viz_rt.json
+  #   suffix: .png
+  #   frame_id: viz_rt
+  #   topic:  viz_rt
+  - data_dir: rt_im
+    fstem2time: time_info/ldr_query_pw.json
+    suffix: .png
+    frame_id: rt_im
+    topic:  rt_im
 pcd:
   - data_dir: os2-64
     fstem2time: time_info/os2-64.json
     suffix: .pcd
     frame_id: base_link
     topic: os2-64
-
+  
+  - data_dir: ldr_query_pw
+    fstem2time: time_info/ldr_query_pw.json
+    suffix: .npy
+    frame_id: radar
+    topic: ldr_query_pw
+    option: 'ldr_query_pw'
+  
+  - data_dir: gs_occupancy
+    fstem2time: time_info/ldr_query_pw.json
+    suffix: .npy
+    frame_id: radar
+    topic: gs_occupancy
+    option: gs_occupancy
+  
   # - data_dir: rpc5p
   #   fstem2time: time_info/rpc.json
   #   suffix: .npy
@@ -38,7 +61,7 @@ pcd:
   #   fstem2time: time_info/rpc.json
   #   suffix: .npy
   #   frame_id: radar
-  #   topic: bbox_rpc
+  #   topic: bbox_rpc200p
   #   option: rpc
 
   # - data_dir: rpc1p
@@ -48,19 +71,19 @@ pcd:
   #   topic: rpc1p
   #   option: rpc
 
-  - data_dir: cfar01p
-    fstem2time: time_info/rpc.json
-    suffix: .npy
-    frame_id: radar
-    topic: cfar01p
-    option: rpc
+  # - data_dir: cfar01p
+  #   fstem2time: time_info/rpc.json
+  #   suffix: .npy
+  #   frame_id: radar
+  #   topic: cfar01p
+  #   option: rpc
 
-  - data_dir: cfar05p
-    fstem2time: time_info/rpc.json
-    suffix: .npy
-    frame_id: radar
-    topic: cfar05p
-    option: rpc
+  # - data_dir: cfar05p
+  #   fstem2time: time_info/rpc.json
+  #   suffix: .npy
+  #   frame_id: radar
+  #   topic: cfar05p
+  #   option: rpc
 
   # - data_dir: cfar1p
   #   fstem2time: time_info/rpc.json
@@ -83,7 +106,7 @@ box3d:
     frame_id: base_link
     topic: label_v2_0
     option: kradar.v2_0
-occ:
+# occ:
   # - data_dir: semantic_occupancy_rae
   #   fstem2time: time_info/semantic_occupancy_rae.json
   #   suffix: .npy
@@ -91,18 +114,18 @@ occ:
   #   topic: occ-rae
     # option: occ_rae
 
-  - data_dir: semantic_occupancy_xyz
-    fstem2time: time_info/semantic_occupancy_xyz.json
-    suffix: .npy
-    frame_id: base_link
-    topic: occ-xyz
-    option: occ_xyz
+#   - data_dir: semantic_occupancy_xyz
+#     fstem2time: time_info/semantic_occupancy_xyz.json
+#     suffix: .npy
+#     frame_id: radar
+#     topic: occ-xyz
+#     option: occ_xyz
 
 tf_static:
   - fpths: 
     - /data/K-RadarOcc2/1/calib/ldr2front0.yml
-    - /home/itri_sean/Desktop/NYCU/Research0716/resource/ldr2rdr.json
-    - /home/itri_sean/Desktop/NYCU/Research0716/resource/calib/rdr2front0.yml
+    - /workspace/resource/ldr2rdr.json
+    - /workspace/resource/calib/rdr2front0.yml
     parent2child_pairs:
     - [front0, base_link]
     - [radar, base_link]
@@ -110,7 +133,7 @@ tf_static:
     topic: tf_static
   
 calib:
-  - fpth: /home/itri_sean/Desktop/NYCU/Research0716/resource/common/cam_front0.yml
+  - fpth: /workspace/resource/common/cam_front0.yml
     frame_id: 'front0'
     topic: 'calib_front0'
     option: kradar

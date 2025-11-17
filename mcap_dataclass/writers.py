@@ -254,20 +254,21 @@ class TFStaticWriter(ROSBAGWRITER):
         self.parent2child_pairs=parent2child_pairs
         
     def write(self, writer, stamp, stf_list):
-            msg = FrameTransforms()
-            assert len(stf_list) == len(self.parent2child_pairs), 'Length mismatch between stf_list and parent2child_pairs'
-            for stf, (parent, child) in zip(stf_list, self.parent2child_pairs):
-                translate, quat = stf[:3, 3].flatten(), Rotation.from_matrix(stf[:3,:3]).as_quat()
-                msg.transforms.append(
-                    FrameTransform(
-                        timestamp = stamp,
-                        parent_frame_id = parent,
-                        child_frame_id = child,
-                        translation= Vector3(x= translate[0], y=translate[1], z=translate[2]),
-                        rotation = Quaternion(x = quat[0], y =quat[1], z=quat[2], w=quat[3]), 
-                    )
+        '''The FrameTransform here assumes Parent: target, child:src.'''
+        msg = FrameTransforms()
+        assert len(stf_list) == len(self.parent2child_pairs), 'Length mismatch between stf_list and parent2child_pairs'
+        for stf, (parent, child) in zip(stf_list, self.parent2child_pairs):
+            translate, quat = stf[:3, 3].flatten(), Rotation.from_matrix(stf[:3,:3]).as_quat()
+            msg.transforms.append(
+                FrameTransform(
+                    timestamp = stamp,
+                    parent_frame_id = parent,
+                    child_frame_id = child,
+                    translation= Vector3(x= translate[0], y=translate[1], z=translate[2]),
+                    rotation = Quaternion(x = quat[0], y =quat[1], z=quat[2], w=quat[3]), 
                 )
-            self.write2bag(writer, msg, stamp)
+            )
+        self.write2bag(writer, msg, stamp)
     def __repr__(self):
         return f"{self.__class__.__name__}(topic={self.topic}, parent_frame_id={self.parent_frame_id}, child_frame_id={self.child_frame_id}, option={self.option})"    
     @classmethod
