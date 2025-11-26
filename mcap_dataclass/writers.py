@@ -112,6 +112,7 @@ class PCDWriter(ROSBAGWRITER):
             PackedElementField(name=name, offset=i * pc_data.itemsize, type=self.NP2ROSTYPE[type])
             for i, (name, type) in enumerate(zip(fields, types))
         ]
+
         msg.data = pc_data.tobytes()
         self.write2bag(mcap_writer, msg, stamp)
 

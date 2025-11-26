@@ -1,8 +1,8 @@
 numpy
-matplotlib=3.9.2
+matplotlib==3.9.2
 foxglove-schemas-protobuf
 foxglove-websocket
 tqdm
 pypcd4
-scipy=1.15.3
+scipy==1.15.3
 opencv-python

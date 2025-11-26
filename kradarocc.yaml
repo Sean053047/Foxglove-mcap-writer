@@ -15,6 +15,11 @@ camera:
     suffix: .png
     frame_id: rt_im
     topic:  rt_im
+  - data_dir: cart2polar
+    fstem2time: time_info/ldr_query_pw.json
+    suffix: .png
+    frame_id: cart2polar
+    topic:  cart2polar
 pcd:
   - data_dir: os2-64
     fstem2time: time_info/os2-64.json
